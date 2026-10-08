@@ -12,25 +12,39 @@ class SearchDealsController extends GetxController {
   final results = <DealModel>[].obs;
   final isLoading = false.obs;
   final hasSearched = false.obs;
+  final errorMessage = RxnString();
+  int _requestId = 0;
 
   void onQueryChanged(String query) {
-    _search(query);
-  }
-
-  Future<void> _search(String query) async {
-    if (query.trim().isEmpty) {
+    final normalizedQuery = query.trim();
+    if (normalizedQuery.isEmpty) {
+      _requestId++;
       results.clear();
+      errorMessage.value = null;
       hasSearched.value = false;
+      isLoading.value = false;
       return;
     }
+    _search(normalizedQuery, ++_requestId);
+  }
+
+  Future<void> _search(String query, int requestId) async {
     isLoading.value = true;
     hasSearched.value = true;
+    errorMessage.value = null;
     try {
       final found = await dealRepo.search(query);
+      if (requestId != _requestId) return;
       results.assignAll(found);
     } catch (e) {
       LogService.error('search failed', e);
+      if (requestId != _requestId) return;
+      results.clear();
+      errorMessage.value = 'Search failed. Please try again.';
+    } finally {
+      if (requestId == _requestId) {
+        isLoading.value = false;
+      }
     }
-    isLoading.value = false;
   }
 }
