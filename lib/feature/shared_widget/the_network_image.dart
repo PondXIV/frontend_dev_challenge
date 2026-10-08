@@ -21,25 +21,49 @@ class TheNetworkImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: borderRadius ?? BorderRadius.zero,
-      child: CachedNetworkImage(
-        imageUrl: url,
-        width: width,
-        height: height,
-        fit: fit,
-        placeholder: (context, _) => Shimmer.fromColors(
-          baseColor: Colors.grey.shade300,
-          highlightColor: Colors.grey.shade100,
-          child: Container(width: width, height: height, color: Colors.white),
-        ),
-        errorWidget: (context, _, __) => Container(
-          width: width,
-          height: height,
-          color: Colors.grey.shade200,
-          child: const Icon(Icons.image_not_supported_outlined),
-        ),
-      ),
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final devicePixelRatio = MediaQuery.devicePixelRatioOf(context);
+        final cacheWidth = _cacheDimension(
+          constraints.maxWidth,
+          width,
+          devicePixelRatio,
+        );
+        final cacheHeight = _cacheDimension(
+          constraints.maxHeight,
+          height,
+          devicePixelRatio,
+        );
+
+        return ClipRRect(
+          borderRadius: borderRadius ?? BorderRadius.zero,
+          child: CachedNetworkImage(
+            imageUrl: url,
+            width: width,
+            height: height,
+            memCacheWidth: cacheWidth,
+            memCacheHeight: cacheHeight,
+            fit: fit,
+            placeholder: (context, _) => Shimmer.fromColors(
+              baseColor: Colors.grey.shade300,
+              highlightColor: Colors.grey.shade100,
+              child: Container(width: width, height: height, color: Colors.white),
+            ),
+            errorWidget: (context, _, __) => Container(
+              width: width,
+              height: height,
+              color: Colors.grey.shade200,
+              child: const Icon(Icons.image_not_supported_outlined),
+            ),
+          ),
+        );
+      },
     );
+  }
+
+  int? _cacheDimension(double constraint, double? requested, double ratio) {
+    final dimension = constraint.isFinite ? constraint : requested;
+    if (dimension == null || !dimension.isFinite || dimension <= 0) return null;
+    return (dimension * ratio).round();
   }
 }

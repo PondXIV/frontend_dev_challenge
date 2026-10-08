@@ -12,6 +12,10 @@ import 'service/fake_api_service.dart';
 
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  final imageCache = PaintingBinding.instance.imageCache;
+  imageCache
+    ..maximumSize = 100
+    ..maximumSizeBytes = 64 << 20;
   await initDependencies();
   runApp(const RescuApp());
 }
