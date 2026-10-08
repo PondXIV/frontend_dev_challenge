@@ -22,6 +22,7 @@ class HomeController extends GetxController {
 
   int _page = 1;
   int _totalPages = 1;
+  int _feedGeneration = 0;
   bool _isFetchingMore = false;
 
   bool get hasMore => _page < _totalPages;
@@ -56,11 +57,23 @@ class HomeController extends GetxController {
   }
 
   Future<void> refreshDeals() async {
+    final generation = ++_feedGeneration;
     _page = 1;
-    final res = await dealRepo.fetchDeals(page: 1);
-    _totalPages = res.totalPages;
-    deals.assignAll(res.items);
-    refreshController.refreshCompleted();
+    if (_isFetchingMore) {
+      refreshController.loadComplete();
+    }
+    _isFetchingMore = false;
+    try {
+      final res = await dealRepo.fetchDeals(page: 1);
+      if (generation != _feedGeneration) return;
+      _totalPages = res.totalPages;
+      deals.assignAll(res.items);
+      refreshController.refreshCompleted();
+    } catch (e) {
+      if (generation != _feedGeneration) return;
+      LogService.error('refresh deals failed', e);
+      refreshController.refreshFailed();
+    }
   }
 
   Future<void> loadMore() async {
@@ -69,18 +82,24 @@ class HomeController extends GetxController {
       refreshController.loadNoData();
       return;
     }
+    final generation = _feedGeneration;
+    final requestedPage = _page + 1;
     _isFetchingMore = true;
-    _page++;
     try {
-      final res = await dealRepo.fetchDeals(page: _page);
+      final res = await dealRepo.fetchDeals(page: requestedPage);
+      if (generation != _feedGeneration) return;
+      _page = requestedPage;
       _totalPages = res.totalPages;
       deals.addAll(res.items);
     } catch (e) {
+      if (generation != _feedGeneration) return;
       LogService.error('loadMore failed', e);
-      _page--;
+    } finally {
+      if (generation == _feedGeneration) {
+        _isFetchingMore = false;
+        refreshController.loadComplete();
+      }
     }
-    _isFetchingMore = false;
-    refreshController.loadComplete();
   }
 
   void scrollToTop() {
