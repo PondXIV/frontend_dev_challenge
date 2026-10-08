@@ -30,6 +30,14 @@ class SearchScreen extends GetView<SearchDealsController> {
                 style: TextStyle(color: Colors.grey.shade600)),
           );
         }
+        if (controller.errorMessage.value != null) {
+          return Center(
+            child: Text(
+              controller.errorMessage.value!,
+              style: TextStyle(color: Colors.grey.shade600),
+            ),
+          );
+        }
         if (controller.results.isEmpty) {
           return Center(
             child: Text('No deals found',
