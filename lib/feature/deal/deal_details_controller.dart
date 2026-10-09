@@ -102,6 +102,15 @@ class DealDetailsController extends GetxController {
   void addToCart() {
     final currentDeal = deal.value;
     if (currentDeal == null) return;
+    final flashSaleEndsAt = currentDeal.flashSaleEndsAt;
+    if (flashSaleEndsAt != null && !flashSaleEndsAt.isAfter(DateTime.now())) {
+      Get.snackbar(
+        'Flash sale ended',
+        '${currentDeal.name} is no longer available in the flash sale.',
+        snackPosition: SnackPosition.BOTTOM,
+      );
+      return;
+    }
     cartService.add(currentDeal);
     Get.snackbar(
       'Added to bag',

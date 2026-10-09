@@ -4,6 +4,8 @@ import 'package:get/get.dart';
 import '../../app_config.dart';
 import '../../model/deal_model.dart';
 import '../../routes/routes.dart';
+import '../../service/flash_sale_countdown_service.dart';
+import 'flash_sale_countdown_text.dart';
 import 'the_network_image.dart';
 
 /// Deal card used in the home feed and search results.
@@ -15,17 +17,31 @@ class DealCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (!deal.isFlashSale) return _buildCard(false);
+    return Obx(() {
+      final expired = Get.find<FlashSaleCountdownService>()
+          .expiredDealIds
+          .contains(deal.id);
+      return _buildCard(expired);
+    });
+  }
+
+  Widget _buildCard(bool expired) {
     return Card(
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
       clipBehavior: Clip.antiAlias,
       color: Colors.white,
       elevation: 0.5,
       child: InkWell(
-        onTap: () => Get.toNamed(
-          Routes.dealRoute(deal.id, source: source),
-          arguments: deal,
-        ),
-        child: Column(
+        onTap: expired
+            ? null
+            : () => Get.toNamed(
+                  Routes.dealRoute(deal.id, source: source),
+                  arguments: deal,
+                ),
+        child: Opacity(
+          opacity: expired ? 0.55 : 1,
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             Stack(
@@ -65,6 +81,52 @@ class DealCard extends StatelessWidget {
                     ),
                   ),
                 ),
+                if (deal.isFlashSale)
+                  Positioned(
+                    left: 8,
+                    bottom: 8,
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 8, vertical: 4),
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.7),
+                        borderRadius: BorderRadius.circular(6),
+                      ),
+                      child: FlashSaleCountdownText(
+                        deal: deal,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        expiredStyle: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 11,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (expired)
+                  Positioned.fill(
+                    child: Center(
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.75),
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: const Text(
+                          'Expired',
+                          style: TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                      ),
+                    ),
+                  ),
               ],
             ),
             Padding(
@@ -135,8 +197,9 @@ class DealCard extends StatelessWidget {
               ),
             ),
           ],
+          ),
         ),
       ),
-    );
+      );
   }
 }

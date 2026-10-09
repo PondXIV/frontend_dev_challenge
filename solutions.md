@@ -1,6 +1,8 @@
 # Solutions
 
-## 1. Tickets investigated: RES-101–RES-107
+## 1. Tickets/features investigated
+
+### Bug tickets RES-101–RES-107
 
 - **RES-101 — Stale search results:** Queries run asynchronously and can finish out of order; a slower earlier query must not replace the latest one. `SearchDealsController` tags requests with an incrementing ID and only applies results/errors/loading state from the current request. Clearing the query also invalidates in-flight work. Covered by `search_deals_controller_test.dart`.
 - **RES-102 — Countdown after leaving orders:** `PickupCountdown` owns a periodic timer that calls `setState`; failing to cancel it when the widget is disposed causes the reported lifecycle crash. Its `dispose` cancels the timer. Covered by `pickup_countdown_test.dart`.
@@ -10,9 +12,13 @@
 - **RES-106 — Wrong pickup time and filter:** UTC instants were formatted and compared as device-local time, producing wrong Bangkok labels and dates. `PickupWindowModel` now normalizes instants to Bangkok time (UTC+7) for labels and market-date/open checks. `pickup_window_model_test.dart` covers the 06:00–09:30 label and market-date comparisons.
 - **RES-107 — Deep-link crash:** `DealDetailsController` assumed every route supplied a `DealModel` in `Get.arguments`; external links supply an ID in the URL instead, so the cast crashed. The binding now passes the optional ID/source into the controller, which fetches the deal through `DealRepo.fetchById` when there is no model argument. The screen shows loading while fetching and provides a retry for request failures; a successful ID lookup renders the normal deal details and add-to-bag action. `deal_details_controller_test.dart` verifies the ID-based path and analytics source.
 
+### F-1 — Live flash-sale countdowns
+
+A single app-wide `FlashSaleCountdownService` provides the current time and detects expirations. `FlashSaleCountdownText` subscribes to that clock, so each per-second update rebuilds only its countdown text; cards listen separately for the one-time expired state. The live timer is shown in the flash rail, home/search deal cards, and deal details. Expired deals are visibly disabled and cannot be added; the service removes expired flash-sale lines from the bag and shows a snackbar. Focused widget tests cover both countdown formats, ticking, expiration, and cart removal.
+
 ## 2. AI usage log
 
-- Used repository search and targeted source/test reads to trace the seven ticket behaviors; edited the RES-106 model, RES-107 route/controller/screen, regression test, and this write-up.
+- Used repository search and targeted source/test reads to trace the ticket behaviors; edited the RES-106 model, RES-107 route/controller/screen, F-1 countdown/cart flows, regression tests, and this write-up.
 - Example 1: My initial notes treated RES-101–105 as unverified likely causes. Reading the actual controllers and regression tests showed the safeguards already present; I corrected the write-up to describe the implementation instead of presenting guesses as findings.
 - Example 2: I initially described the time conversion helper as `marketTime`; checking the implementation showed its actual name is `_toMarketTime`. I corrected the description to match the code.
 
@@ -38,6 +44,6 @@ The model tests cover the Bangkok label and compare full market dates across a U
 
 ## 4. Time spent, roughly, and what I would do next with one more day
 
-Time spent: roughly 45 minutes total on investigation, the RES-106 and RES-107 fixes, targeted tests, and this write-up.
+Time spent: roughly 75 minutes total on investigation, the RES-106 and RES-107 fixes, F-1 implementation, targeted tests, and this write-up.
 
 With one more day, I would capture the requested before/after Android DevTools frame and memory profiles for RES-105, then add a focused test for RES-103 proving that a closed deal-details controller no longer fetches availability after cart changes.
