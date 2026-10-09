@@ -8,6 +8,7 @@ import 'package:rescu/repository/deal_repo.dart';
 import 'package:rescu/service/analytics_service.dart';
 import 'package:rescu/service/cart_service.dart';
 import 'package:rescu/service/fake_api_service.dart';
+import 'package:rescu/repository/order_repo.dart';
 
 void main() {
   test('loads a deal from its route ID when no deal argument is provided',
@@ -16,7 +17,7 @@ void main() {
     final analytics = AnalyticsService(api: FakeApiService());
     final controller = DealDetailsController(
       dealRepo: repo,
-      cartService: CartService(),
+      cartService: CartService(orderRepo: _CartOrderRepo()),
       analytics: analytics,
       dealId: 42,
       source: 'push',
@@ -38,6 +39,13 @@ void main() {
       'source': 'push',
     });
   });
+}
+
+class _CartOrderRepo extends OrderRepo {
+  _CartOrderRepo() : super(api: FakeApiService());
+
+  @override
+  Future<void> releaseReservation(String reservationId) async {}
 }
 
 class _DealRepo extends DealRepo {

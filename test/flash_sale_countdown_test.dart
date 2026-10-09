@@ -4,8 +4,11 @@ import 'package:get/get.dart';
 import 'package:rescu/feature/shared_widget/flash_sale_countdown_text.dart';
 import 'package:rescu/model/deal_model.dart';
 import 'package:rescu/model/pickup_window_model.dart';
+import 'package:rescu/model/reservation_model.dart';
+import 'package:rescu/repository/order_repo.dart';
 import 'package:rescu/service/cart_service.dart';
 import 'package:rescu/service/flash_sale_countdown_service.dart';
+import 'package:rescu/service/fake_api_service.dart';
 
 void main() {
   late DateTime now;
@@ -16,7 +19,7 @@ void main() {
   setUp(() {
     removalNotices.clear();
     now = DateTime.now().toUtc();
-    cartService = CartService();
+    cartService = CartService(orderRepo: _OrderRepo());
     Get.put<CartService>(cartService);
     countdownService = FlashSaleCountdownService(
       cartService: cartService,
@@ -30,8 +33,9 @@ void main() {
     Get.reset();
   });
 
-  test('does not add an already expired flash sale to the bag', () {
-    cartService.add(_deal(DateTime.now().subtract(const Duration(seconds: 1))));
+  test('does not add an already expired flash sale to the bag', () async {
+    await cartService
+        .add(_deal(DateTime.now().subtract(const Duration(seconds: 1))));
 
     expect(cartService.items, isEmpty);
   });
@@ -59,7 +63,7 @@ void main() {
     tester,
   ) async {
     final deal = _deal(now.add(const Duration(seconds: 2)));
-    cartService.add(deal);
+    await cartService.add(deal);
     await tester.pumpWidget(
       GetMaterialApp(
         home: Scaffold(body: FlashSaleCountdownText(deal: deal)),
@@ -76,6 +80,22 @@ void main() {
       ['Flash deal'],
     ]);
   });
+}
+
+class _OrderRepo extends OrderRepo {
+  _OrderRepo() : super(api: FakeApiService());
+
+  @override
+  Future<ReservationModel> reserve(int dealId, {int quantity = 1}) async =>
+      ReservationModel(
+        id: 'res_$dealId',
+        dealId: dealId,
+        quantity: quantity,
+        expiresAt: DateTime.now().toUtc().add(const Duration(minutes: 5)),
+      );
+
+  @override
+  Future<void> releaseReservation(String reservationId) async {}
 }
 
 DealModel _deal(DateTime flashSaleEndsAt) => DealModel(
