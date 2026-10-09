@@ -1,6 +1,6 @@
 # Solutions
 
-## 1. Tickets investigated: RES-101–RES-106
+## 1. Tickets investigated: RES-101–RES-107
 
 - **RES-101 — Stale search results:** Queries run asynchronously and can finish out of order; a slower earlier query must not replace the latest one. `SearchDealsController` tags requests with an incrementing ID and only applies results/errors/loading state from the current request. Clearing the query also invalidates in-flight work. Covered by `search_deals_controller_test.dart`.
 - **RES-102 — Countdown after leaving orders:** `PickupCountdown` owns a periodic timer that calls `setState`; failing to cancel it when the widget is disposed causes the reported lifecycle crash. Its `dispose` cancels the timer. Covered by `pickup_countdown_test.dart`.
@@ -8,12 +8,13 @@
 - **RES-104 — Duplicate feed items:** A page request started before refresh can finish afterward and append stale data to the refreshed feed. `HomeController` increments a feed generation on refresh and ignores responses from older generations; it also prevents simultaneous pagination requests. Covered by `home_controller_test.dart`.
 - **RES-105 — Feed performance and image memory:** Scroll offset is observed only by the app bar and scroll-to-top button, not by the feed `Obx`, so scrolling does not rebuild the whole feed. `ListView.builder` builds feed rows lazily. `TheNetworkImage` sets decoded cache dimensions from the rendered size and device pixel ratio, rather than retaining full-resolution source images. This is code-level verification; no Android DevTools before/after profile or memory measurements were captured in this environment.
 - **RES-106 — Wrong pickup time and filter:** UTC instants were formatted and compared as device-local time, producing wrong Bangkok labels and dates. `PickupWindowModel` now normalizes instants to Bangkok time (UTC+7) for labels and market-date/open checks. `pickup_window_model_test.dart` covers the 06:00–09:30 label and market-date comparisons.
+- **RES-107 — Deep-link crash:** `DealDetailsController` assumed every route supplied a `DealModel` in `Get.arguments`; external links supply an ID in the URL instead, so the cast crashed. The binding now passes the optional ID/source into the controller, which fetches the deal through `DealRepo.fetchById` when there is no model argument. The screen shows loading while fetching and provides a retry for request failures; a successful ID lookup renders the normal deal details and add-to-bag action. `deal_details_controller_test.dart` verifies the ID-based path and analytics source.
 
 ## 2. AI usage log
 
-- Used repository search and targeted source/test reads to trace the six ticket behaviors; edited the RES-106 model and this write-up.
+- Used repository search and targeted source/test reads to trace the seven ticket behaviors; edited the RES-106 model, RES-107 route/controller/screen, regression test, and this write-up.
 - Example 1: My initial notes treated RES-101–105 as unverified likely causes. Reading the actual controllers and regression tests showed the safeguards already present; I corrected the write-up to describe the implementation instead of presenting guesses as findings.
-- Example 2: I referred to the timezone helper as `marketTime`; checking the implementation showed its actual name is `_toMarketTime`. I corrected the description to match the code.
+- Example 2: I initially described the time conversion helper as `marketTime`; checking the implementation showed its actual name is `_toMarketTime`. I corrected the description to match the code.
 
 ## 3. Design questions
 
@@ -37,6 +38,6 @@ The model tests cover the Bangkok label and compare full market dates across a U
 
 ## 4. Time spent, roughly, and what I would do next with one more day
 
-Time spent: roughly 30 minutes total on investigation, targeted validation, the RES-106 fix, and this write-up.
+Time spent: roughly 45 minutes total on investigation, the RES-106 and RES-107 fixes, targeted tests, and this write-up.
 
 With one more day, I would capture the requested before/after Android DevTools frame and memory profiles for RES-105, then add a focused test for RES-103 proving that a closed deal-details controller no longer fetches availability after cart changes.
