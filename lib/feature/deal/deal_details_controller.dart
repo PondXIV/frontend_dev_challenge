@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:get/get.dart';
 
 import '../../model/deal_model.dart';
@@ -111,10 +113,10 @@ class DealDetailsController extends GetxController {
       );
       return;
     }
-    cartService.add(currentDeal);
+    unawaited(cartService.add(currentDeal));
     Get.snackbar(
       'Added to bag',
-      '${currentDeal.name} — pick up ${currentDeal.pickupWindow.label}',
+      '${currentDeal.name} — reserving stock now.',
       snackPosition: SnackPosition.BOTTOM,
       duration: const Duration(seconds: 2),
     );

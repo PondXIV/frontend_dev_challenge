@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
 import '../../app_config.dart';
+import '../../model/cart_item_model.dart';
 import '../shared_widget/the_network_image.dart';
 import 'cart_controller.dart';
 
@@ -23,6 +24,7 @@ class CartScreen extends GetView<CartController> {
           itemBuilder: (context, index) {
             final item = cart.items[index];
             return Card(
+              key: ValueKey(item.deal.id),
               margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
               color: Colors.white,
               elevation: 0.5,
@@ -56,23 +58,46 @@ class CartScreen extends GetView<CartController> {
                                   fontSize: 13,
                                   color: AppConfig.primaryGreen,
                                   fontWeight: FontWeight.w600)),
+                          const SizedBox(height: 4),
+                          _ReservationStatus(
+                            item: item,
+                            now: cart.now,
+                          ),
                         ],
                       ),
                     ),
-                    Row(
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
                       children: [
-                        IconButton(
-                          visualDensity: VisualDensity.compact,
-                          icon: const Icon(Icons.remove_circle_outline),
-                          onPressed: () => cart.decrement(item.deal.id),
+                        Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              icon: const Icon(Icons.remove_circle_outline),
+                              onPressed: cart.isCheckoutLocked.value
+                                  ? null
+                                  : () => cart.decrement(item.deal.id),
+                            ),
+                            Text('${item.quantity}',
+                                style: const TextStyle(
+                                    fontWeight: FontWeight.bold)),
+                            IconButton(
+                              visualDensity: VisualDensity.compact,
+                              icon: const Icon(Icons.add_circle_outline),
+                              onPressed: cart.isCheckoutLocked.value
+                                  ? null
+                                  : () => cart.add(item.deal),
+                            ),
+                          ],
                         ),
-                        Text('${item.quantity}',
-                            style: const TextStyle(
-                                fontWeight: FontWeight.bold)),
                         IconButton(
+                          tooltip: 'Remove item',
                           visualDensity: VisualDensity.compact,
-                          icon: const Icon(Icons.add_circle_outline),
-                          onPressed: () => cart.add(item.deal),
+                          icon: const Icon(Icons.delete_outline, size: 20),
+                          onPressed: cart.isCheckoutLocked.value
+                              ? null
+                              : () => cart.remove(item.deal.id),
                         ),
                       ],
                     ),
@@ -103,7 +128,9 @@ class CartScreen extends GetView<CartController> {
               const SizedBox(width: 24),
               Expanded(
                 child: FilledButton(
-                  onPressed: controller.isCheckingOut.value
+                  onPressed: controller.isCheckingOut.value ||
+                          cart.isCheckoutLocked.value ||
+                          cart.items.any((item) => item.isReserving)
                       ? null
                       : controller.checkout,
                   child: controller.isCheckingOut.value
@@ -111,7 +138,9 @@ class CartScreen extends GetView<CartController> {
                           width: 20,
                           height: 20,
                           child: CircularProgressIndicator(strokeWidth: 2))
-                      : const Text('Checkout'),
+                      : cart.items.any((item) => item.isReserving)
+                          ? const Text('Reserving stock…')
+                          : const Text('Checkout'),
                 ),
               ),
             ],
@@ -119,5 +148,34 @@ class CartScreen extends GetView<CartController> {
         );
       }),
     );
+  }
+}
+
+class _ReservationStatus extends StatelessWidget {
+  final CartItemModel item;
+  final Rx<DateTime> now;
+
+  const _ReservationStatus({required this.item, required this.now});
+
+  @override
+  Widget build(BuildContext context) {
+    return Obx(() {
+      if (item.isReserving) {
+        return const Text(
+          'Reserving stock…',
+          style: TextStyle(fontSize: 11, color: Colors.orange),
+        );
+      }
+      final remaining = item.reservations
+          .map((reservation) => reservation.expiresAt.difference(now.value))
+          .reduce((a, b) => a < b ? a : b);
+      final seconds = remaining.inSeconds.clamp(0, 5 * 60);
+      final minutes = seconds ~/ 60;
+      final remainder = seconds % 60;
+      return Text(
+        'Reserved · expires in $minutes:${remainder.toString().padLeft(2, '0')}',
+        style: const TextStyle(fontSize: 11, color: Colors.green),
+      );
+    });
   }
 }
