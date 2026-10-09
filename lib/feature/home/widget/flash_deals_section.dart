@@ -4,12 +4,12 @@ import 'package:get/get.dart';
 import '../../../app_config.dart';
 import '../../../model/deal_model.dart';
 import '../../../routes/routes.dart';
+import '../../../service/flash_sale_countdown_service.dart';
+import '../../shared_widget/flash_sale_countdown_text.dart';
 import '../../shared_widget/the_network_image.dart';
 
 /// Horizontal flash-sale rail.
 ///
-/// NOTE: the countdown is currently a static "Ends soon" label — turning it
-/// into a live per-deal countdown is one of the feature tasks in PROBLEM.md.
 class FlashDealsSection extends StatelessWidget {
   final List<DealModel> deals;
 
@@ -39,19 +39,27 @@ class FlashDealsSection extends StatelessWidget {
             itemCount: deals.length,
             itemBuilder: (context, index) {
               final deal = deals[index];
-              return SizedBox(
-                width: 200,
-                child: Card(
+              return Obx(() {
+                final expired = Get.find<FlashSaleCountdownService>()
+                    .expiredDealIds
+                    .contains(deal.id);
+                return SizedBox(
+                  width: 200,
+                  child: Card(
                   color: Colors.white,
                   elevation: 0.5,
                   clipBehavior: Clip.antiAlias,
                   margin: const EdgeInsets.symmetric(horizontal: 4),
                   child: InkWell(
-                    onTap: () => Get.toNamed(
-                      Routes.dealRoute(deal.id, source: 'flash_rail'),
-                      arguments: deal,
-                    ),
-                    child: Column(
+                    onTap: expired
+                        ? null
+                        : () => Get.toNamed(
+                              Routes.dealRoute(deal.id, source: 'flash_rail'),
+                              arguments: deal,
+                            ),
+                    child: Opacity(
+                      opacity: expired ? 0.55 : 1,
+                      child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         TheNetworkImage(
@@ -90,11 +98,19 @@ class FlashDealsSection extends StatelessWidget {
                                       color: Colors.red.shade50,
                                       borderRadius: BorderRadius.circular(4),
                                     ),
-                                    child: Text('Ends soon',
-                                        style: TextStyle(
-                                            fontSize: 11,
-                                            fontWeight: FontWeight.w600,
-                                            color: Colors.red.shade700)),
+                                    child: FlashSaleCountdownText(
+                                      deal: deal,
+                                      style: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.red.shade700,
+                                      ),
+                                      expiredStyle: TextStyle(
+                                        fontSize: 11,
+                                        fontWeight: FontWeight.w600,
+                                        color: Colors.grey.shade700,
+                                      ),
+                                    ),
                                   ),
                                 ],
                               ),
@@ -102,10 +118,12 @@ class FlashDealsSection extends StatelessWidget {
                           ),
                         ),
                       ],
+                      ),
                     ),
                   ),
                 ),
-              );
+                );
+              });
             },
           ),
         ),

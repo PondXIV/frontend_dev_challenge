@@ -3,6 +3,8 @@ import 'package:get/get.dart';
 
 import '../../app_config.dart';
 import '../../model/deal_model.dart';
+import '../../service/flash_sale_countdown_service.dart';
+import '../shared_widget/flash_sale_countdown_text.dart';
 import '../shared_widget/the_network_image.dart';
 import 'deal_details_controller.dart';
 
@@ -36,16 +38,21 @@ class DealDetailsScreen extends GetView<DealDetailsController> {
         return _buildDealContent(deal);
       }),
       bottomSheet: Obx(() {
-        if (controller.deal.value == null) return const SizedBox.shrink();
+        final deal = controller.deal.value;
+        if (deal == null) return const SizedBox.shrink();
+        final expired = deal.isFlashSale &&
+            Get.find<FlashSaleCountdownService>()
+                .expiredDealIds
+                .contains(deal.id);
         return Container(
           padding: const EdgeInsets.fromLTRB(16, 12, 16, 24),
           color: Colors.white,
           child: SizedBox(
             width: double.infinity,
             child: FilledButton.icon(
-              onPressed: controller.addToCart,
-              icon: const Icon(Icons.add_shopping_cart),
-              label: const Text('Add to bag'),
+              onPressed: expired ? null : controller.addToCart,
+              icon: Icon(expired ? Icons.timer_off_outlined : Icons.add_shopping_cart),
+              label: Text(expired ? 'Expired' : 'Add to bag'),
             ),
           ),
         );
@@ -101,6 +108,31 @@ class DealDetailsScreen extends GetView<DealDetailsController> {
                         )),
                   ],
                 ),
+                if (deal.isFlashSale) ...[
+                  const SizedBox(height: 12),
+                  Row(
+                    children: [
+                      const Icon(Icons.bolt, color: Colors.red, size: 18),
+                      const SizedBox(width: 4),
+                      const Text(
+                        'Flash sale ends in',
+                        style: TextStyle(fontWeight: FontWeight.w600),
+                      ),
+                      const SizedBox(width: 6),
+                      FlashSaleCountdownText(
+                        deal: deal,
+                        style: const TextStyle(
+                          color: Colors.red,
+                          fontWeight: FontWeight.bold,
+                        ),
+                        expiredStyle: const TextStyle(
+                          color: Colors.grey,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
                 const SizedBox(height: 16),
                 Container(
                   padding: const EdgeInsets.all(12),

@@ -13,6 +13,12 @@ class CartService extends GetxService {
   final itemCount = 0.obs;
 
   void add(DealModel deal) {
+    final flashSaleEndsAt = deal.flashSaleEndsAt;
+    if (flashSaleEndsAt != null &&
+        !flashSaleEndsAt.isAfter(DateTime.now())) {
+      LogService.log('cart: flash sale ended for deal ${deal.id}');
+      return;
+    }
     final existing = items.firstWhereOrNull((i) => i.deal.id == deal.id);
     if (existing != null) {
       if (existing.quantity >= deal.quantityLeft) {
@@ -42,6 +48,16 @@ class CartService extends GetxService {
   void remove(int dealId) {
     items.removeWhere((i) => i.deal.id == dealId);
     _recount();
+  }
+
+  List<String> removeExpiredFlashDeals(Set<int> dealIds) {
+    final removedItems = items
+        .where((item) => dealIds.contains(item.deal.id))
+        .toList(growable: false);
+    if (removedItems.isEmpty) return const [];
+    items.removeWhere((item) => dealIds.contains(item.deal.id));
+    _recount();
+    return removedItems.map((item) => item.deal.name).toList(growable: false);
   }
 
   void clear() {
