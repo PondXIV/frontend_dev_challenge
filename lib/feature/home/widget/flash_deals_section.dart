@@ -6,6 +6,7 @@ import '../../../model/deal_model.dart';
 import '../../../routes/routes.dart';
 import '../../../service/flash_sale_countdown_service.dart';
 import '../../shared_widget/flash_sale_countdown_text.dart';
+import '../../shared_widget/deal_impression_tracker.dart';
 import '../../shared_widget/the_network_image.dart';
 
 /// Horizontal flash-sale rail.
@@ -43,9 +44,13 @@ class FlashDealsSection extends StatelessWidget {
                 final expired = Get.find<FlashSaleCountdownService>()
                     .expiredDealIds
                     .contains(deal.id);
-                return SizedBox(
-                  width: 200,
-                  child: Card(
+                return DealImpressionTracker(
+                  deal: deal,
+                  source: 'flash_rail',
+                  position: index,
+                  child: SizedBox(
+                    width: 200,
+                    child: Card(
                   color: Colors.white,
                   elevation: 0.5,
                   clipBehavior: Clip.antiAlias,
@@ -120,6 +125,7 @@ class FlashDealsSection extends StatelessWidget {
                       ],
                       ),
                     ),
+                  ),
                   ),
                 ),
                 );

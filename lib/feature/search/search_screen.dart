@@ -49,6 +49,8 @@ class SearchScreen extends GetView<SearchDealsController> {
           itemBuilder: (context, index) => DealCard(
             deal: controller.results[index],
             source: 'search',
+            impressionSource: 'search',
+            position: index,
           ),
         );
       }),
