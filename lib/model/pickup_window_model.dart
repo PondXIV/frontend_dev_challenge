@@ -2,6 +2,8 @@ import 'package:intl/intl.dart';
 
 /// A store's pickup window. The API sends instants as ISO-8601 UTC strings.
 class PickupWindowModel {
+  static const _marketUtcOffset = Duration(hours: 7);
+
   final DateTime start;
   final DateTime end;
 
@@ -14,18 +16,36 @@ class PickupWindowModel {
     );
   }
 
-  /// Human readable label, e.g. "17:30 – 21:00".
-  String get label =>
-      '${DateFormat('HH:mm').format(start)} – ${DateFormat('HH:mm').format(end)}';
+  DateTime _toMarketTime(DateTime value) => value.toUtc().add(_marketUtcOffset);
 
-  /// Whether pickup starts today.
-  bool get isToday => start.day == DateTime.now().day;
+  /// Human readable label, e.g. "17:30 – 21:00".
+  String get label {
+    final marketStart = _toMarketTime(start);
+    final marketEnd = _toMarketTime(end);
+    return '${DateFormat('HH:mm').format(marketStart)} – '
+        '${DateFormat('HH:mm').format(marketEnd)}';
+  }
+
+  /// Whether pickup starts today in Bangkok market time.
+  bool get isToday {
+    final nowMarket = _toMarketTime(DateTime.now());
+    final startMarket = _toMarketTime(start);
+    return startMarket.year == nowMarket.year &&
+        startMarket.month == nowMarket.month &&
+        startMarket.day == nowMarket.day;
+  }
 
   /// Whether the store is currently accepting pickups.
   bool get isOpenNow {
-    final now = DateTime.now();
-    return now.isAfter(start) && now.isBefore(end);
+    final nowMarket = _toMarketTime(DateTime.now());
+    final startMarket = _toMarketTime(start);
+    final endMarket = _toMarketTime(end);
+    return !nowMarket.isBefore(startMarket) && nowMarket.isBefore(endMarket);
   }
 
-  Duration get untilStart => start.difference(DateTime.now());
+  Duration get untilStart {
+    final nowMarket = _toMarketTime(DateTime.now());
+    final startMarket = _toMarketTime(start);
+    return startMarket.difference(nowMarket);
+  }
 }
