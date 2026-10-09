@@ -6,24 +6,40 @@ import '../../model/deal_model.dart';
 import '../../routes/routes.dart';
 import '../../service/flash_sale_countdown_service.dart';
 import 'flash_sale_countdown_text.dart';
+import 'deal_impression_tracker.dart';
 import 'the_network_image.dart';
 
 /// Deal card used in the home feed and search results.
 class DealCard extends StatelessWidget {
   final DealModel deal;
   final String source;
+  final String impressionSource;
+  final int position;
 
-  const DealCard({super.key, required this.deal, this.source = 'home'});
+  const DealCard({
+    super.key,
+    required this.deal,
+    this.source = 'home',
+    this.impressionSource = 'home_feed',
+    this.position = 0,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (!deal.isFlashSale) return _buildCard(false);
-    return Obx(() {
-      final expired = Get.find<FlashSaleCountdownService>()
-          .expiredDealIds
-          .contains(deal.id);
-      return _buildCard(expired);
-    });
+    final card = deal.isFlashSale
+        ? Obx(() {
+            final expired = Get.find<FlashSaleCountdownService>()
+                .expiredDealIds
+                .contains(deal.id);
+            return _buildCard(expired);
+          })
+        : _buildCard(false);
+    return DealImpressionTracker(
+      deal: deal,
+      source: impressionSource,
+      position: position,
+      child: card,
+    );
   }
 
   Widget _buildCard(bool expired) {

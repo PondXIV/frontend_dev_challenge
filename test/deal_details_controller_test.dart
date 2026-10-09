@@ -13,7 +13,7 @@ void main() {
   test('loads a deal from its route ID when no deal argument is provided',
       () async {
     final repo = _DealRepo();
-    final analytics = AnalyticsService();
+    final analytics = AnalyticsService(api: FakeApiService());
     final controller = DealDetailsController(
       dealRepo: repo,
       cartService: CartService(),

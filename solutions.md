@@ -16,9 +16,13 @@
 
 A single app-wide `FlashSaleCountdownService` provides the current time and detects expirations. `FlashSaleCountdownText` subscribes to that clock, so each per-second update rebuilds only its countdown text; cards listen separately for the one-time expired state. The live timer is shown in the flash rail, home/search deal cards, and deal details. Expired deals are visibly disabled and cannot be added; the service removes expired flash-sale lines from the bag and shows a snackbar. Focused widget tests cover both countdown formats, ticking, expiration, and cart removal.
 
+### F-2 — Impression tracking
+
+`DealImpressionTracker` uses `VisibilityDetector` on each lazily built card and passes visibility changes to `AnalyticsService`. The service starts a one-second timer at 50% visibility, cancels it if visibility drops below 50%, and records each deal ID at most once per app session. Events include `deal_id`, the required `home_feed`/`flash_rail`/`search` source, and list position; they appear immediately on Analytics debug. Unsent events are posted through `FakeApiService.sendAnalyticsBatch` at 10 events or 15 seconds after the first queued event. Failed sends are logged and retained for a later retry. Countdown-independent impression timers are only active while a card qualifies as visible. `analytics_impression_test.dart` checks continuous visibility, session deduplication, event properties, and both batch thresholds.
+
 ## 2. AI usage log
 
-- Used repository search and targeted source/test reads to trace the ticket behaviors; edited the RES-106 model, RES-107 route/controller/screen, F-1 countdown/cart flows, regression tests, and this write-up.
+- Used repository search and targeted source/test reads to trace the ticket behaviors; edited the RES-106 model, RES-107 route/controller/screen, F-1 countdown/cart flows, F-2 visibility/batching analytics, regression tests, and this write-up.
 - Example 1: My initial notes treated RES-101–105 as unverified likely causes. Reading the actual controllers and regression tests showed the safeguards already present; I corrected the write-up to describe the implementation instead of presenting guesses as findings.
 - Example 2: I initially described the time conversion helper as `marketTime`; checking the implementation showed its actual name is `_toMarketTime`. I corrected the description to match the code.
 
@@ -44,6 +48,6 @@ The model tests cover the Bangkok label and compare full market dates across a U
 
 ## 4. Time spent, roughly, and what I would do next with one more day
 
-Time spent: roughly 75 minutes total on investigation, the RES-106 and RES-107 fixes, F-1 implementation, targeted tests, and this write-up.
+Time spent: roughly 100 minutes total on investigation, the RES-106 and RES-107 fixes, F-1/F-2 implementation, targeted tests, and this write-up.
 
 With one more day, I would capture the requested before/after Android DevTools frame and memory profiles for RES-105, then add a focused test for RES-103 proving that a closed deal-details controller no longer fetches availability after cart changes.
